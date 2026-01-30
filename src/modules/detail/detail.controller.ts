@@ -7,7 +7,7 @@ export class DetailController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getDetail(@Param('id') id: string) {
-    return this.detailService.findOne(id);
+  async getDetail(@Param('id') mediaKey: string) {
+    return this.detailService.findOne(mediaKey);
   }
 }

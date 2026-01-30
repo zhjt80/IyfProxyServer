@@ -42,23 +42,37 @@ export class IyfService {
     }
   }
 
-  async fetchDramaDetail(id: string): Promise<DramaDetail> {
-    this.logger.log(`Fetching drama detail for id: ${id}`);
+  async fetchDramaDetail(mediaKey: string): Promise<DramaDetail> {
+    this.logger.log(`Fetching drama detail for mediaKey: ${mediaKey}`);
     try {
-      const url = `${this.baseUrl}/drama/${id}`;
-      const response = await axios.get(url, {
+      const apiUrl = 'https://api.iyf.tv/api/video/videodetails';
+      const params = {
+        mediaKey,
+        System: 'h5',
+        AppVersion: '1.0',
+        SystemVersion: 'h5',
+        version: 'H3',
+        i18n: '0',
+        pub: '17698098688',
+        vv: 'fd1d317e39d1e8d6181c2b9836d4132a',
+      };
+      const fullUrl = `${apiUrl}?${new URLSearchParams(params).toString()}`;
+      this.logger.log(`Fetching from iyf.tv API: ${fullUrl}`);
+      
+      const response = await axios.get(apiUrl, {
         timeout: 15000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         },
+        params,
       });
 
-      const detail = this.parseDramaDetail(response.data);
+      const detail = this.parseApiDramaDetail(response.data);
       this.logger.log(`Fetched detail for drama: ${detail.data.detailInfo.title}`);
       return detail;
     } catch (error) {
-      this.logger.error(`Failed to fetch drama detail for id: ${id}, using mock data`, error.stack, 'IyfService');
-      return this.getMockDramaDetail(id);
+      this.logger.error(`Failed to fetch drama detail for mediaKey: ${mediaKey}, using mock data`, error.stack, 'IyfService');
+      return this.getMockDramaDetail(mediaKey);
     }
   }
 
@@ -151,7 +165,7 @@ export class IyfService {
 
   private parseDramaDetail(html: string): DramaDetail {
     const $ = cheerio.load(html);
-    
+
     const title = $('.detail-title, .drama-title, h1').first().text().trim();
     const starring = $('.starring, .cast, .actors').first().text().trim();
     const introduce = $('.introduce, .description, .summary').first().text().trim();
@@ -193,13 +207,60 @@ export class IyfService {
     };
   }
 
+  private parseApiDramaDetail(apiResponse: any): DramaDetail {
+    const data = apiResponse;
+
+    this.logger.log(`Parsing iyf.tv API response: ret=${data.ret}, has detailInfo=${!!data.data?.detailInfo}`);
+    
+    const detailInfo = data.data?.detailInfo || {};
+    
+    const title = detailInfo.title || detailInfo.videoName || '';
+    const starring = detailInfo.actors || detailInfo.starring || 'Unknown';
+    const introduce = detailInfo.introduce || detailInfo.description || 'No description available';
+    const coverImgUrl = detailInfo.coverImgUrl || detailInfo.img || detailInfo.image || detailInfo.cover || '';
+    const playCount = parseInt(detailInfo.playCount) || 0;
+
+    const episodes: any[] = [];
+    if (Array.isArray(detailInfo.episodes) && detailInfo.episodes.length > 0) {
+      this.logger.log(`Found ${detailInfo.episodes.length} episodes in response`);
+      
+      detailInfo.episodes.forEach((episode: any) => {
+        episodes.push({
+          episodeId: episode.episodeId || 0,
+          episodeKey: episode.episodeKey || '',
+          mediaKey: episode.mediaKey || '',
+          title: '',
+          episodeTitle: episode.episodeTitle || episode.title || `第${episodes.length + 1}集`,
+          resolutionDes: episode.resolutionDes || 'HD',
+          isVip: episode.isVip || false,
+        });
+      });
+    } else {
+      this.logger.warn('No episodes found in response');
+    }
+
+    return {
+      ret: data.ret || 0,
+      data: {
+        detailInfo: {
+          title,
+          starring,
+          introduce,
+          coverImgUrl,
+          playCount,
+          episodes,
+        },
+      },
+    };
+  }
+
   private parseStreamUrl(html: string): StreamUrl {
     const $ = cheerio.load(html);
 
     const streamUrl = $('video source').attr('src') ||
-                     $('video').attr('src') ||
-                     $('.video-player').attr('data-src') ||
-                     '';
+                       $('video').attr('src') ||
+                       $('.video-player').attr('data-src') ||
+                       '';
 
     return { streamUrl };
   }
