@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 import { ConfigService } from '@nestjs/config';
 import { AppLoggerService } from '../logger.service';
 import { Drama, DramaDetail, StreamUrl } from '../../types';
+import { generateVVWithResult, generatePub } from '../utils/generateVV';
 
 @Injectable()
 export class IyfService {
@@ -46,18 +47,26 @@ export class IyfService {
     this.logger.log(`Fetching drama detail for mediaKey: ${mediaKey}`);
     try {
       const apiUrl = 'https://api.iyf.tv/api/video/videodetails';
-      const params = {
+      const pub = generatePub();
+      
+      const baseParams = {
         mediaKey,
         System: 'h5',
         AppVersion: '1.0',
         SystemVersion: 'h5',
         version: 'H3',
         i18n: '0',
-        pub: '17698098688',
-        vv: 'fd1d317e39d1e8d6181c2b9836d4132a',
+        pub: pub,
       };
-      const fullUrl = `${apiUrl}?${new URLSearchParams(params).toString()}`;
-      this.logger.log(`Fetching from iyf.tv API: ${fullUrl}`);
+      
+      const vvResult = generateVVWithResult(baseParams, { url: apiUrl, pub });
+      
+      const params = {
+        ...baseParams,
+        vv: vvResult.vv,
+      };
+      
+      this.logger.log(`Fetching from iyf.tv API with generated pub:${pub} and vv:${vvResult.vv}`);
       
       const response = await axios.get(apiUrl, {
         timeout: 15000,
