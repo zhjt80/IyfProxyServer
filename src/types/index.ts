@@ -1,35 +1,38 @@
 export interface Drama {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  totalEpisodes: number;
+  id: string
+  title: string
+  description: string
+  imageUrl: string
+  totalEpisodes: number
 }
 
 export interface Episode {
-  episodeId: number;
-  episodeKey: string;
-  mediaKey: string;
-  title: string;
-  episodeTitle: string;
-  resolutionDes: string;
-  isVip: boolean;
+  episodeId: number
+  episodeKey: string
+  mediaKey: string
+  title: string
+  episodeTitle: string
+  resolutionDes: string
+  videoType: number
+  isVip: boolean
 }
 
 export interface DramaDetail {
-  ret: number;
+  ret: number
   data: {
     detailInfo: {
-      title: string;
-      starring: string;
-      introduce: string;
-      coverImgUrl: string;
-      playCount: number;
-      episodes: Episode[];
-    };
-  };
+      uniqueID: string
+      videoId: string
+      title: string
+      starring: string
+      introduce: string
+      coverImgUrl: string
+      playCount: number
+      episodes: Episode[]
+    }
+  }
 }
 
 export interface StreamUrl {
-  streamUrl: string;
+  streamUrl: string
 }

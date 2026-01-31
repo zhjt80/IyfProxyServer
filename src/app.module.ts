@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { DramasModule } from './modules/dramas/dramas.module';
 import { DetailModule } from './modules/detail/detail.module';
 import { StreamModule } from './modules/stream/stream.module';
+import { GetPlaydataModule } from './modules/getplaydata/getplaydata.module';
 import { IyfModule } from './services/iyf/iyf.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { IyfModule } from './services/iyf/iyf.module';
     DramasModule,
     DetailModule,
     StreamModule,
+    GetPlaydataModule,
   ],
 })
 export class AppModule {}

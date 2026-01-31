@@ -1,6 +1,8 @@
 // VV Parameter Generator
 // Extracted from iyf.tv application's API request interceptor
 
+import { Console } from "console";
+
 interface VVParams {
   [key: string]: any;
 }
@@ -23,7 +25,7 @@ export function generateVV(params: VVParams, options: GenerateVVOptions = {}): s
   const pub = options.pub !== undefined ? String(options.pub) : undefined;
   
   // Parameters sorted alphabetically (excluding certain keys)
-  const EXCLUDED_KEYS = ["pub", "vv", "uid", "gid", "expire", "sign", "login_uid", "DeviceId", "token", "System", "SystemVersion", "Version", "AppVersion", "version", "cacheable", "Lang", "i18n"];
+  const EXCLUDED_KEYS = ["pub", "vv", "uid", "gid", "expire", "sign", "login_uid", "DeviceId", "token", "System", "SystemVersion", "Version", "AppVersion", "version", "cacheable", "Lang", "i18n", 'mediaKey', 'videoId', 'videoType'];
   
   // Get the query string part of URL
   let h = "";
@@ -49,9 +51,10 @@ export function generateVV(params: VVParams, options: GenerateVVOptions = {}): s
   }
   
   const m = stringify(sortedParams).toLowerCase();
-  
+  console.log(m);
+  console.log(h);
   // Combine values: [pub, url_query_string, sorted_params_string, secret_key]
-  const v = [pub, h, m, "5569958*1"];
+  const v = [pub, h, m, "SsEJJSsEJWoD38mDIumC"];
   
   // Filter out empty values
   const filtered = v.filter(item => !!item);
