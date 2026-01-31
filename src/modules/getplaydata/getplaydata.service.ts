@@ -1,47 +1,44 @@
 import { Injectable } from '@nestjs/common'
 import axios from 'axios'
 import { AppLoggerService } from '../../services/logger.service'
-import { generateVVWithResult, generatePub } from '../../services/utils/generateVV'
+const { generateVVWithResult, generatePub } = require('../../services/utils/generateVV.js')
 
 @Injectable()
 export class GetPlaydataService {
   private readonly logger = new AppLoggerService()
 
-  async getPlaydata(
-    mediaKey: string,
-    videoId: string,
-    videoType: string,
-    episodeId: string,
-    uniqueID: string,
-  ): Promise<any> {
+  async getPlaydata(mediaKey: string, videoId: string, videoType: string): Promise<any> {
     this.logger.log(`Fetching playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`)
 
     try {
       const apiUrl = 'https://api.iyf.tv/api/video/getplaydata'
-      const pub = generatePub()
+      const generatedPub = generatePub()
+      const generatedDeviceId = this.generateDeviceId()
 
       const baseParams: any = {
         mediaKey,
         videoId,
         videoType,
-        liveLine: '',
+        Liveline: '',
         System: 'h5',
         AppVersion: '1.0',
         SystemVersion: 'h5',
         version: 'H3',
-        DeviceId: '1b86909bcb7dedc2756c1f88e7755723',
+        DeviceId: generatedDeviceId,
         i18n: '0',
-        pub,
+        pub: generatedPub,
       }
 
-      const vvResult = generateVVWithResult(baseParams, { url: apiUrl, pub })
+      const vvResult = generateVVWithResult(baseParams, { url: '', pub: generatedPub })
 
       const params = {
         ...baseParams,
         vv: vvResult.vv,
       }
 
-      this.logger.log(`Fetching from iyf.tv API with generated pub:${pub} and vv:${vvResult.vv}`)
+      this.logger.log(
+        `Fetching from iyf.tv API with pub:${generatedPub}, DeviceId:${generatedDeviceId}, vv:${vvResult.vv}`,
+      )
 
       const response = await axios.get(apiUrl, {
         timeout: 15000,
@@ -52,7 +49,20 @@ export class GetPlaydataService {
       })
 
       this.logger.log(`Fetched playdata response:`, response.data)
-      return response.data
+
+      const responseData = response.data
+
+      if (responseData.data && Array.isArray(responseData.data.list)) {
+        const validItem = responseData.data.list.find(
+          (item: any) => item.mediaUrl && item.mediaUrl !== null && item.mediaUrl !== '',
+        )
+        if (validItem) {
+          return validItem
+        }
+        return responseData.data.list[0]
+      }
+
+      return responseData
     } catch (error: any) {
       this.logger.error(
         `Failed to fetch playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`,
@@ -61,5 +71,9 @@ export class GetPlaydataService {
       )
       throw error
     }
+  }
+
+  private generateDeviceId(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 }

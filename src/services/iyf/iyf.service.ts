@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio'
 import { ConfigService } from '@nestjs/config'
 import { AppLoggerService } from '../logger.service'
 import { Drama, DramaDetail, StreamUrl } from '../../types'
-import { generateVVWithResult, generatePub } from '../utils/generateVV'
+const { generateVVWithResult, generatePub } = require('../utils/generateVV.js')
 
 @Injectable()
 export class IyfService {
@@ -63,7 +63,7 @@ export class IyfService {
         pub: pub,
       }
 
-      const vvResult = generateVVWithResult(baseParams, { url: apiUrl, pub })
+      const vvResult = generateVVWithResult(baseParams, { url: '', pub })
 
       const params = {
         ...baseParams,
