@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DramasModule } from './modules/dramas/dramas.module';
 import { DetailModule } from './modules/detail/detail.module';
-import { StreamModule } from './modules/stream/stream.module';
 import { GetPlaydataModule } from './modules/getplaydata/getplaydata.module';
 import { IyfModule } from './services/iyf/iyf.module';
 
@@ -22,7 +21,6 @@ import { IyfModule } from './services/iyf/iyf.module';
     IyfModule,
     DramasModule,
     DetailModule,
-    StreamModule,
     GetPlaydataModule,
   ],
 })

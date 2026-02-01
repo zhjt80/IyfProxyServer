@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import axios from 'axios'
-import * as cheerio from 'cheerio'
 import { AppLoggerService } from '../logger.service'
-import { Drama, DramaDetail, StreamUrl } from '../../types'
+import { Drama, DramaDetail } from '../../types'
 const { generateVVWithResult, generatePub } = require('../utils/generateVV.js')
 
 const BASE_URL = 'https://www.iyf.tv'
@@ -80,19 +79,7 @@ export class IyfService {
     }
   }
 
-  async fetchStreamUrl(episodeKey: string): Promise<StreamUrl> {
-    this.logger.log(`Fetching stream URL for episode: ${episodeKey}`)
-    try {
-      const url = `${this.baseUrl}/play/${episodeKey}`
-      const response = await this.makeApiRequest(url)
-      const streamUrl = this.parseStreamUrl(response)
-      this.logger.log(`Fetched stream URL for episode: ${episodeKey}`)
-      return streamUrl
-    } catch (error) {
-      this.logger.error(`Failed to fetch stream URL for episode: ${episodeKey}, using mock data`, error.stack, 'IyfService')
-      return this.getMockStreamUrl(episodeKey)
-    }
-  }
+
 
   async fetchPlaydata(mediaKey: string, videoId: string, videoType: string): Promise<any> {
     this.logger.log(`Fetching playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`)
@@ -229,18 +216,6 @@ export class IyfService {
     }
   }
 
-  private parseStreamUrl(html: string): StreamUrl {
-    const $ = cheerio.load(html)
-
-    const streamUrl =
-      $('video source').attr('src') ||
-      $('video').attr('src') ||
-      $('.video-player').attr('data-src') ||
-      ''
-
-    return { streamUrl }
-  }
-
   private getMockDramas(): Drama[] {
     return [
       {
@@ -315,7 +290,4 @@ export class IyfService {
     }
   }
 
-  private getMockStreamUrl(episodeKey: string): StreamUrl {
-    return { streamUrl: `https://example.com/video/${episodeKey}.m3u8` }
-  }
 }

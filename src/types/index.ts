@@ -33,6 +33,3 @@ export interface DramaDetail {
   }
 }
 
-export interface StreamUrl {
-  streamUrl: string
-}

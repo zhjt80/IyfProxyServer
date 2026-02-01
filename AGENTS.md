@@ -4,10 +4,10 @@ A NestJS proxy server that fetches drama data from iyf.tv and provides RESTful A
 
 ## Project Overview
 
-This proxy server acts as an intermediary between the IyfApp mobile application and iyf.tv/drama website. It handles:
+This proxy server acts as an intermediary between IyfApp mobile application and iyf.tv/drama website. It handles:
 - Fetching drama listings and details from iyf.tv
 - Providing CORS-enabled API endpoints for mobile clients
-- Managing video stream URL resolution
+- Fetching video playback data (media URL) from iyf.tv API
 - Handling authentication and session management
 
 ## Technology Stack
@@ -30,33 +30,29 @@ iyfserver/
 │   │   ├── dramas/
 │   │   │   ├── dramas.controller.ts
 │   │   │   ├── dramas.service.ts
-│   │   │   ├── dramas.module.ts
-│   │   │   └── dto/
-│   │   │       └── get-dramas.dto.ts
+│   │   │   └── dramas.module.ts
 │   │   ├── detail/
 │   │   │   ├── detail.controller.ts
 │   │   │   ├── detail.service.ts
-│   │   │   ├── detail.module.ts
-│   │   │   └── dto/
-│   │   │       └── get-detail.dto.ts
-│   │   └── stream/
-│   │       ├── stream.controller.ts
-│   │       ├── stream.service.ts
-│   │       ├── stream.module.ts
-│   │       └── dto/
-│   │           └── get-stream.dto.ts
+│   │   │   └── detail.module.ts
+│   │   └── getplaydata/
+│   │       ├── getplaydata.controller.ts
+│   │       ├── getplaydata.service.ts
+│   │       └── getplaydata.module.ts
 │   ├── common/
 │   │   ├── filters/
 │   │   │   └── http-exception.filter.ts
 │   │   ├── interceptors/
-│   │   │   ├── logging.interceptor.ts
-│   │   │   └── timeout.interceptor.ts
+│   │   │   └── logging.interceptor.ts
 │   │   └── pipes/
 │   │       └── validation.pipe.ts
 │   ├── services/
-│   │   ├── iyf.service.ts
-│   │   ├── url-parser.service.ts
-│   │   └── logger.service.ts
+│   │   ├── iyf/
+│   │   │   ├── iyf.service.ts
+│   │   │   └── iyf.module.ts
+│   │   ├── logger.service.ts
+│   │   └── utils/
+│   │       └── generateVV.ts
 │   ├── types/
 │   │   └── index.ts
 │   ├── app.module.ts
@@ -152,46 +148,57 @@ export class DetailController {
 }
 ```
 
-### GET /api/stream/:episodeKey
+### GET /api/getplaydata
 
-Get the video stream URL for a specific episode.
+Get video playback data including media URL for a specific episode.
 
 **Parameters:**
-- `episodeKey` (path) - Episode key identifier
+- `mediaKey` (query) - Drama media key
+- `videoId` (query) - Video ID
+- `videoType` (query, optional) - Video type (default: "1")
 
-**File:** `src/modules/stream/stream.controller.ts`
+**File:** `src/modules/getplaydata/getplaydata.controller.ts`
 
 **Response:**
 ```json
 {
-  "streamUrl": "string"
+  "episodeId": 1207177,
+  "episodeKey": "8nthjJkg0VA",
+  "mediaKey": "yWFaVzMB6wF",
+  "mediaUrl": "https://...",
+  "episodeTitle": "01",
+  "resolutionDes": "576P",
+  "title": "剧集标题",
+  "videoType": 1,
+  "isVip": false,
+  ...
 }
 ```
 
 **Controller Example:**
 ```typescript
-@Controller('api/stream')
-export class StreamController {
-  constructor(private readonly streamService: StreamService) {}
+@Controller('api/getplaydata')
+export class GetPlaydataController {
+  constructor(private readonly getPlaydataService: GetPlaydataService) {}
 
-  @Get(':episodeKey')
-  async getStream(@Param('episodeKey') episodeKey: string) {
-    return this.streamService.getStreamUrl(episodeKey);
+  @Get()
+  async getPlaydata(
+    @Query('mediaKey') mediaKey: string,
+    @Query('videoId') videoId: string,
+    @Query('videoType') videoType?: string,
+  ) {
+    return this.getPlaydataService.getPlaydata(mediaKey, videoId, videoType);
   }
 }
 ```
 
 ## Source Data
 
-The server fetches data from:
-```
-https://www.iyf.tv/list/drama?region=大陆
-```
+The server fetches data from iyf.tv API endpoints:
 
-Additional endpoints that may need to be scraped:
-- Drama detail pages
-- Episode video pages
-- Stream URL resolution pages
+- **Dramas List**: `https://m10.iyf.tv/api/list/Search`
+- **Drama Detail**: `https://api.iyf.tv/api/video/videodetails`
+- **Video Playdata**: `https://api.iyf.tv/api/video/getplaydata`
 
 ## Setup Instructions
 
@@ -300,14 +307,6 @@ import { IsString } from 'class-validator';
 export class GetDetailDto {
   @IsString()
   id: string;
-}
-
-// src/modules/stream/dto/get-stream.dto.ts
-import { IsString } from 'class-validator';
-
-export class GetStreamDto {
-  @IsString()
-  episodeKey: string;
 }
 ```
 
@@ -547,6 +546,7 @@ export interface Episode {
   title: string;
   episodeTitle: string;
   resolutionDes: string;
+  videoType: number;
   isVip: boolean;
 }
 
@@ -593,6 +593,11 @@ For iOS simulator, use:
 ```
 http://localhost:3000/api
 ```
+
+The mobile app uses these endpoints:
+- `/api/dramas` - Browse drama listings
+- `/api/detail/:id` - View drama details and episodes
+- `/api/getplaydata` - Get video media URL for playback
 
 For development with different origins, ensure CORS is properly configured in `src/main.ts`.
 
