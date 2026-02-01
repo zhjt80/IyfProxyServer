@@ -25,15 +25,47 @@ export class IyfService {
     return response.data
   }
 
-  async fetchDramas(): Promise<Drama[]> {
-    this.logger.log('Fetching dramas from iyf.tv API')
+  async fetchMovies(): Promise<Drama[]> {
+    this.logger.log('Fetching movies from iyf.tv API')
     try {
+      const pub = generatePub()
+      const generatedDeviceId = this.generateDeviceId()
+
       const apiUrl =
-        'https://m10.iyf.tv/api/list/Search?cinema=1&page=1&size=36&orderby=0&desc=1&cid=0,1,4&region=%E5%A4%A7%E9%99%86&isserial=-1&isIndex=-1&isfree=-1&vv=240239096692f5449edd9d734cf511b1&pub=CJSsEJSvDpWuE2umD3TVLLDVCJSqBZOtBZ8qDIuqNs8vD64uCs9YDpOtP3HYCMPXPJ0qDJ0qOp0tDM8mPZLZNsCqPZDXC64pE6CtPJ1bPZKmD3LbPM9bCc8pEJWvCpCs'
+        'https://api.iyf.tv/api/list/getconditionfilterdata?titleid=movie&ids=0,0,0,0&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId=' +
+        generatedDeviceId +
+        '&i18n=0&pub=' +
+        pub
 
       const response = await this.makeApiRequest(apiUrl)
 
-      const dramas = this.parseApiDramaList(response)
+      const movies = this.parseApiMovieList(response)
+      this.logger.log(`Fetched ${movies.length} movies from API`)
+
+      if (movies.length === 0) {
+        this.logger.warn('No movies from API, using mock data')
+        return this.getMockMovies()
+      }
+
+      return movies
+    } catch (error) {
+      this.logger.error('Failed to fetch movies from API, using mock data', error.stack, 'IyfService')
+      return this.getMockMovies()
+    }
+  }
+
+  async fetchDramas(): Promise<Drama[]> {
+    this.logger.log('Fetching dramas from iyf.tv API')
+    try {
+      const pub = generatePub()
+      const generatedDeviceId = this.generateDeviceId()
+      const apiUrl ='https://api.iyf.tv/api/list/getconditionfilterdata?titleid=drama&ids=0,0,0,0,0,0&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId='+
+        generatedDeviceId+
+        '&i18n=0&pub=' +
+        pub
+      const response = await this.makeApiRequest(apiUrl)
+
+      const dramas = this.parseApiMovieList(response)
       this.logger.log(`Fetched ${dramas.length} dramas from API`)
 
       if (dramas.length === 0) {
@@ -78,8 +110,6 @@ export class IyfService {
       return this.getMockDramaDetail(mediaKey)
     }
   }
-
-
 
   async fetchPlaydata(mediaKey: string, videoId: string, videoType: string): Promise<any> {
     this.logger.log(`Fetching playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`)
@@ -134,6 +164,32 @@ export class IyfService {
 
   private generateDeviceId(): string {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  }
+
+  private parseApiMovieList(apiResponse: any): Drama[] {
+    const movies: Drama[] = []
+
+    try {
+      if (apiResponse.ret === 200 && apiResponse.data) {
+        const result = apiResponse.data.result || apiResponse.data.list || []
+
+        result.forEach((item: any) => {
+          if (item.mediaKey && item.title) {
+            movies.push({
+              id: item.mediaKey || '',
+              title: item.title || '',
+              description: item.description  || 'No description available',
+              imageUrl: item.coverImgUrl || '',
+              totalEpisodes: item.isSerial ? parseInt(item.lastName) || 0 : 0,
+            })
+          }
+        })
+      }
+    } catch (error) {
+      this.logger.error('Error parsing movie API response', error.stack, 'IyfService')
+    }
+
+    return movies
   }
 
   private parseApiDramaList(apiResponse: any): Drama[] {
@@ -246,12 +302,38 @@ export class IyfService {
         imageUrl: 'https://via.placeholder.com/300x450/00CEC9/ffffff?text=琅琊榜',
         totalEpisodes: 54,
       },
+    ]
+  }
+
+  private getMockMovies(): Drama[] {
+    return [
       {
-        id: 'drama-5',
-        title: '甄嬛传',
-        description: '清宫剧经典',
-        imageUrl: 'https://via.placeholder.com/300x450/FDCB6E/ffffff?text=甄嬛传',
-        totalEpisodes: 76,
+        id: 'movie-1',
+        title: '复仇者联盟',
+        description: '超级英雄集结',
+        imageUrl: 'https://via.placeholder.com/300x450/E94B3C/ffffff?text=复仇者联盟',
+        totalEpisodes: 0,
+      },
+      {
+        id: 'movie-2',
+        title: '星际穿越',
+        description: '科幻巨制',
+        imageUrl: 'https://via.placeholder.com/300x450/6C5CE7/ffffff?text=星际穿越',
+        totalEpisodes: 0,
+      },
+      {
+        id: 'movie-3',
+        title: '流浪地球',
+        description: '中国科幻电影里程碑',
+        imageUrl: 'https://via.placeholder.com/300x450/00CEC9/ffffff?text=流浪地球',
+        totalEpisodes: 0,
+      },
+      {
+        id: 'movie-4',
+        title: '哪吒之魔童降世',
+        description: '国产动画电影',
+        imageUrl: 'https://via.placeholder.com/300x450/FDCB6E/ffffff?text=哪吒之魔童降世',
+        totalEpisodes: 0,
       },
     ]
   }
@@ -289,5 +371,4 @@ export class IyfService {
       },
     }
   }
-
 }

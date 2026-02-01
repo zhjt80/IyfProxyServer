@@ -35,10 +35,14 @@ iyfserver/
 │   │   │   ├── detail.controller.ts
 │   │   │   ├── detail.service.ts
 │   │   │   └── detail.module.ts
-│   │   └── getplaydata/
-│   │       ├── getplaydata.controller.ts
-│   │       ├── getplaydata.service.ts
-│   │       └── getplaydata.module.ts
+│   │   ├── getplaydata/
+│   │   │   ├── getplaydata.controller.ts
+│   │   │   ├── getplaydata.service.ts
+│   │   │   └── getplaydata.module.ts
+│   │   └── movies/
+│   │       ├── movies.controller.ts
+│   │       ├── movies.service.ts
+│   │       └── movies.module.ts
 │   ├── common/
 │   │   ├── filters/
 │   │   │   └── http-exception.filter.ts
@@ -188,6 +192,40 @@ export class GetPlaydataController {
     @Query('videoType') videoType?: string,
   ) {
     return this.getPlaydataService.getPlaydata(mediaKey, videoId, videoType);
+  }
+}
+```
+
+### GET /api/movies
+
+List all movies from iyf.tv.
+
+**File:** `src/modules/movies/movies.controller.ts`
+
+**Response:**
+```json
+{
+  "movies": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "imageUrl": "string",
+      "totalEpisodes": 0
+    }
+  ]
+}
+```
+
+**Controller Example:**
+```typescript
+@Controller('api/movies')
+export class MoviesController {
+  constructor(private readonly moviesService: MoviesService) {}
+
+  @Get()
+  async getMovies() {
+    return this.moviesService.findAll();
   }
 }
 ```
