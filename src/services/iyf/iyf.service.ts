@@ -1,18 +1,29 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
-import { ConfigService } from '@nestjs/config'
 import { AppLoggerService } from '../logger.service'
 import { Drama, DramaDetail, StreamUrl } from '../../types'
 const { generateVVWithResult, generatePub } = require('../utils/generateVV.js')
 
+const BASE_URL = 'https://www.iyf.tv'
+const API_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+}
+const REQUEST_TIMEOUT = 15000
+
 @Injectable()
 export class IyfService {
-  private readonly baseUrl: string
   private readonly logger = new AppLoggerService()
+  private readonly baseUrl = BASE_URL
 
-  constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('IYF_BASE_URL') || 'https://www.iyf.tv'
+  private async makeApiRequest(url: string, params?: any): Promise<any> {
+    this.logger.log(`Making API request to: ${url}`)
+    const response = await axios.get(url, {
+      timeout: REQUEST_TIMEOUT,
+      headers: API_HEADERS,
+      params,
+    })
+    return response.data
   }
 
   async fetchDramas(): Promise<Drama[]> {
@@ -21,14 +32,9 @@ export class IyfService {
       const apiUrl =
         'https://m10.iyf.tv/api/list/Search?cinema=1&page=1&size=36&orderby=0&desc=1&cid=0,1,4&region=%E5%A4%A7%E9%99%86&isserial=-1&isIndex=-1&isfree=-1&vv=240239096692f5449edd9d734cf511b1&pub=CJSsEJSvDpWuE2umD3TVLLDVCJSqBZOtBZ8qDIuqNs8vD64uCs9YDpOtP3HYCMPXPJ0qDJ0qOp0tDM8mPZLZNsCqPZDXC64pE6CtPJ1bPZKmD3LbPM9bCc8pEJWvCpCs'
 
-      const response = await axios.get(apiUrl, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-      })
+      const response = await this.makeApiRequest(apiUrl)
 
-      const dramas = this.parseApiDramaList(response.data)
+      const dramas = this.parseApiDramaList(response)
       this.logger.log(`Fetched ${dramas.length} dramas from API`)
 
       if (dramas.length === 0) {
@@ -38,11 +44,7 @@ export class IyfService {
 
       return dramas
     } catch (error) {
-      this.logger.error(
-        'Failed to fetch dramas from API, using mock data',
-        error.stack,
-        'IyfService',
-      )
+      this.logger.error('Failed to fetch dramas from API, using mock data', error.stack, 'IyfService')
       return this.getMockDramas()
     }
   }
@@ -60,35 +62,20 @@ export class IyfService {
         SystemVersion: 'h5',
         version: 'H3',
         i18n: '0',
-        pub: pub,
+        pub,
       }
 
       const vvResult = generateVVWithResult(baseParams, { url: '', pub })
-
-      const params = {
-        ...baseParams,
-        vv: vvResult.vv,
-      }
+      const params = { ...baseParams, vv: vvResult.vv }
 
       this.logger.log(`Fetching from iyf.tv API with generated pub:${pub} and vv:${vvResult.vv}`)
 
-      const response = await axios.get(apiUrl, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-        params,
-      })
-
-      const detail = this.parseApiDramaDetail(response.data)
+      const response = await this.makeApiRequest(apiUrl, params)
+      const detail = this.parseApiDramaDetail(response)
       this.logger.log(`Fetched detail for drama: ${detail.data.detailInfo.title}`)
       return detail
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch drama detail for mediaKey: ${mediaKey}, using mock data`,
-        error.stack,
-        'IyfService',
-      )
+      this.logger.error(`Failed to fetch drama detail for mediaKey: ${mediaKey}, using mock data`, error.stack, 'IyfService')
       return this.getMockDramaDetail(mediaKey)
     }
   }
@@ -97,22 +84,12 @@ export class IyfService {
     this.logger.log(`Fetching stream URL for episode: ${episodeKey}`)
     try {
       const url = `${this.baseUrl}/play/${episodeKey}`
-      const response = await axios.get(url, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-      })
-
-      const streamUrl = this.parseStreamUrl(response.data)
+      const response = await this.makeApiRequest(url)
+      const streamUrl = this.parseStreamUrl(response)
       this.logger.log(`Fetched stream URL for episode: ${episodeKey}`)
       return streamUrl
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch stream URL for episode: ${episodeKey}, using mock data`,
-        error.stack,
-        'IyfService',
-      )
+      this.logger.error(`Failed to fetch stream URL for episode: ${episodeKey}, using mock data`, error.stack, 'IyfService')
       return this.getMockStreamUrl(episodeKey)
     }
   }
@@ -139,45 +116,31 @@ export class IyfService {
       }
 
       const vvResult = generateVVWithResult(baseParams, { url: '', pub: generatedPub })
+      const params = { ...baseParams, vv: vvResult.vv }
 
-      const params = {
-        ...baseParams,
-        vv: vvResult.vv,
-      }
+      this.logger.log(`Fetching from iyf.tv API with pub:${generatedPub}, DeviceId:${generatedDeviceId}, vv:${vvResult.vv}`)
 
-      this.logger.log(
-        `Fetching from iyf.tv API with pub:${generatedPub}, DeviceId:${generatedDeviceId}, vv:${vvResult.vv}`,
-      )
-
-      const response = await axios.get(apiUrl, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        },
-        params,
-      })
-
-      this.logger.log(`Fetched playdata response:`, response.data)
-
+      const response = await this.makeApiRequest(apiUrl, params)
       const responseData = response.data
 
-      if (responseData.data && Array.isArray(responseData.data.list)) {
-        const validItem = responseData.data.list.find(
+      if (responseData.list && Array.isArray(responseData.list)) {
+        const item = responseData.list.find(
           (item: any) => item.mediaUrl && item.mediaUrl !== null && item.mediaUrl !== '',
         )
-        if (validItem) {
-          return validItem
+
+        if (!item) {
+          this.logger.warn('No item with valid mediaUrl found')
+          throw new Error('No playdata with valid mediaUrl available')
         }
-        return responseData.data.list[0]
+
+        this.logger.log(`Returning playdata item with mediaUrl: ${item.mediaUrl}`)
+        return item
       }
 
-      return responseData
-    } catch (error: any) {
-      this.logger.error(
-        `Failed to fetch playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`,
-        error.stack,
-        'IyfService',
-      )
+      this.logger.warn('No playdata list found in response')
+      throw new Error('No playdata available')
+    } catch (error) {
+      this.logger.error(`Failed to fetch playdata for mediaKey: ${mediaKey}, videoId: ${videoId}`, error.stack, 'IyfService')
       throw error
     }
   }
@@ -190,23 +153,16 @@ export class IyfService {
     const dramas: Drama[] = []
 
     try {
-      this.logger.log(`Parsing API response, ret: ${apiResponse.ret}`)
-
       if (apiResponse.ret === 200 && apiResponse.data && apiResponse.data.info) {
         const info = apiResponse.data.info
-        this.logger.log(`API info type: ${typeof info}, is array: ${Array.isArray(info)}`)
-
         let result: any[] = []
 
         if (Array.isArray(info) && info.length > 0 && info[0].result) {
           result = info[0].result
-          this.logger.log(`Extracted result from info[0].result, length: ${result.length}`)
         } else if (typeof info === 'object' && info.result) {
           result = info.result
-          this.logger.log(`Extracted result from info.result, length: ${result.length}`)
         } else if (Array.isArray(info)) {
           result = info
-          this.logger.log(`Using info array directly, length: ${result.length}`)
         }
 
         result.forEach((item: any) => {
@@ -228,88 +184,8 @@ export class IyfService {
     return dramas
   }
 
-  private parseDramaList(html: string): Drama[] {
-    const $ = cheerio.load(html)
-    const dramas: Drama[] = []
-
-    $('.drama-item, .item, .video-item').each((index, element) => {
-      const $el = $(element)
-      const title = $el.find('.title, .name, h3').first().text().trim()
-      const id = $el.find('a').first().attr('href')?.split('/').pop() || ''
-      const imageUrl = $el.find('img').first().attr('src') || ''
-      const description = $el.find('.desc, .description, .intro').first().text().trim()
-
-      if (title && id) {
-        dramas.push({
-          id,
-          title,
-          description: description || 'No description available',
-          imageUrl,
-          totalEpisodes: 0,
-        })
-      }
-    })
-
-    return dramas
-  }
-
-  private parseDramaDetail(html: string): DramaDetail {
-    const $ = cheerio.load(html)
-
-    const uniqueID = $('meta[name="unique-id"]').attr('content') || ''
-    const videoType = parseInt($('meta[name="video-type"]').attr('content') || '0') || 0
-    const videoId = $('meta[name="video-id"]').attr('content') || ''
-    const title = $('.detail-title, .drama-title, h1').first().text().trim()
-    const starring = $('.starring, .cast, .actors').first().text().trim()
-    const introduce = $('.introduce, .description, .summary').first().text().trim()
-    const coverImgUrl = $('.cover, .poster img, .drama-cover img').first().attr('src') || ''
-    const playCount = parseInt($('.play-count, .views').first().text().replace(/\D/g, '')) || 0
-
-    const episodes: any[] = []
-    $('.episode-item, .episode, .ep-list li').each((index, element) => {
-      const $el = $(element)
-      const episodeTitle = $el.text().trim()
-      const episodeKey = $el.find('a').first().attr('href')?.split('/').pop() || ''
-      const mediaKey = $el.attr('data-media') || ''
-
-      if (episodeTitle) {
-        episodes.push({
-          episodeId: index + 1,
-          episodeKey,
-          mediaKey,
-          title: '',
-          episodeTitle,
-          resolutionDes: 'HD',
-          videoType,
-          isVip: false,
-        })
-      }
-    })
-
-    return {
-      ret: 0,
-      data: {
-        detailInfo: {
-          uniqueID,
-          videoId,
-          title,
-          starring,
-          introduce,
-          coverImgUrl,
-          playCount,
-          episodes,
-        },
-      },
-    }
-  }
-
   private parseApiDramaDetail(apiResponse: any): DramaDetail {
     const data = apiResponse
-
-    this.logger.log(
-      `Parsing iyf.tv API response: ret=${data.ret}, has detailInfo=${!!data.data?.detailInfo}`,
-    )
-
     const detailInfo = data.data?.detailInfo || {}
 
     const uniqueID = detailInfo.uniqueID || detailInfo.uniqueid || ''
@@ -317,14 +193,11 @@ export class IyfService {
     const title = detailInfo.title || detailInfo.videoName || ''
     const starring = detailInfo.actors || detailInfo.starring || 'Unknown'
     const introduce = detailInfo.introduce || detailInfo.description || 'No description available'
-    const coverImgUrl =
-      detailInfo.coverImgUrl || detailInfo.img || detailInfo.image || detailInfo.cover || ''
+    const coverImgUrl = detailInfo.coverImgUrl || detailInfo.img || detailInfo.image || detailInfo.cover || ''
     const playCount = parseInt(detailInfo.playCount) || 0
 
     const episodes: any[] = []
     if (Array.isArray(detailInfo.episodes) && detailInfo.episodes.length > 0) {
-      this.logger.log(`Found ${detailInfo.episodes.length} episodes in response`)
-
       detailInfo.episodes.forEach((episode: any) => {
         episodes.push({
           episodeId: episode.episodeId || 0,
@@ -337,8 +210,6 @@ export class IyfService {
           isVip: episode.isVip || false,
         })
       })
-    } else {
-      this.logger.warn('No episodes found in response')
     }
 
     return {
@@ -411,32 +282,8 @@ export class IyfService {
   }
 
   private getMockDramaDetail(id: string): DramaDetail {
-    const dramaMap: Record<string, any> = {
-      'drama-1': {
-        uniqueID: 'unique_001',
-        videoId: 'video_001',
-        title: '三体',
-        starring: '张鲁一, 于和伟, 陈瑾, 王子文, 林永健, 李小冉',
-        introduce:
-          '根据刘慈欣同名小说改编，讲述了地球人类文明和三体文明的信息交流、生死搏杀及两个文明在宇宙中的兴衰历程。',
-        coverImgUrl: 'https://via.placeholder.com/300x450/4A90E2/ffffff?text=三体',
-        playCount: 9876543,
-        videoType: 1,
-      },
-      'drama-2': {
-        uniqueID: 'unique_002',
-        videoId: 'video_002',
-        title: '繁花',
-        starring: '胡歌, 马伊琍, 唐嫣, 辛芷蕾',
-        introduce: '王家卫执导的年代剧，讲述了90年代上海滩的商战传奇。',
-        coverImgUrl: 'https://via.placeholder.com/300x450/E94B3C/ffffff?text=繁花',
-        playCount: 7654321,
-        videoType: 1,
-      },
-    }
-
-    const defaultDetail = {
-      uniqueID: 'unique_default',
+    const mockDetail = {
+      uniqueID: 'mock_unique_id',
       videoId: `video_${id}`,
       title: '电视剧',
       starring: '待定',
@@ -446,30 +293,22 @@ export class IyfService {
       videoType: 1,
     }
 
-    const drama = dramaMap[id] || defaultDetail
-
-    const episodes = Array.from({ length: 30 }, (_, i) => ({
+    const episodes = Array.from({ length: 5 }, (_, i) => ({
       episodeId: i + 1,
       episodeKey: `${id}-episode-${i + 1}`,
-      mediaKey: `media-${id}-${i + 1}`,
+      mediaKey: `media-${id}`,
       title: '',
       episodeTitle: `第${i + 1}集`,
       resolutionDes: 'HD',
-      videoType: drama.videoType || 1,
-      isVip: i < 5,
+      videoType: 1,
+      isVip: false,
     }))
 
     return {
       ret: 0,
       data: {
         detailInfo: {
-          uniqueID: drama.uniqueID,
-          videoId: drama.videoId,
-          title: drama.title,
-          starring: drama.starring,
-          introduce: drama.introduce,
-          coverImgUrl: drama.coverImgUrl,
-          playCount: drama.playCount,
+          ...mockDetail,
           episodes,
         },
       },
@@ -477,8 +316,6 @@ export class IyfService {
   }
 
   private getMockStreamUrl(episodeKey: string): StreamUrl {
-    return {
-      streamUrl: `https://example.com/video/${episodeKey}.m3u8`,
-    }
+    return { streamUrl: `https://example.com/video/${episodeKey}.m3u8` }
   }
 }
