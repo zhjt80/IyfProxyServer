@@ -29,7 +29,6 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('dramas', 'Drama endpoints')
     .addTag('detail', 'Drama detail endpoints')
-    .addTag('stream', 'Stream endpoints')
     .addTag('getplaydata', 'Video playdata endpoints')
     .build();
 

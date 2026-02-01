@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import axios from 'axios'
 import { AppLoggerService } from '../logger.service'
-import { Drama, DramaDetail } from '../../types'
+import { Video, DramaDetail } from '../../types'
 const { generateVVWithResult, generatePub } = require('../utils/generateVV.js')
 
 const BASE_URL = 'https://www.iyf.tv'
@@ -25,7 +25,7 @@ export class IyfService {
     return response.data
   }
 
-  async fetchMovies(): Promise<Drama[]> {
+  async fetchMovies(): Promise<Video[]> {
     this.logger.log('Fetching movies from iyf.tv API')
     try {
       const pub = generatePub()
@@ -39,7 +39,7 @@ export class IyfService {
 
       const response = await this.makeApiRequest(apiUrl)
 
-      const movies = this.parseApiMovieList(response)
+      const movies = this.parseApiVideoList(response)
       this.logger.log(`Fetched ${movies.length} movies from API`)
 
       if (movies.length === 0) {
@@ -54,7 +54,7 @@ export class IyfService {
     }
   }
 
-  async fetchDramas(): Promise<Drama[]> {
+  async fetchDramas(): Promise<Video[]> {
     this.logger.log('Fetching dramas from iyf.tv API')
     try {
       const pub = generatePub()
@@ -65,7 +65,7 @@ export class IyfService {
         pub
       const response = await this.makeApiRequest(apiUrl)
 
-      const dramas = this.parseApiMovieList(response)
+      const dramas = this.parseApiVideoList(response)
       this.logger.log(`Fetched ${dramas.length} dramas from API`)
 
       if (dramas.length === 0) {
@@ -166,8 +166,8 @@ export class IyfService {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 
-  private parseApiMovieList(apiResponse: any): Drama[] {
-    const movies: Drama[] = []
+  private parseApiVideoList(apiResponse: any): Video[] {
+    const movies: Video[] = []
 
     try {
       if (apiResponse.ret === 200 && apiResponse.data) {
@@ -199,40 +199,6 @@ export class IyfService {
     return movies
   }
 
-  private parseApiDramaList(apiResponse: any): Drama[] {
-    const dramas: Drama[] = []
-
-    try {
-      if (apiResponse.ret === 200 && apiResponse.data && apiResponse.data.info) {
-        const info = apiResponse.data.info
-        let result: any[] = []
-
-        if (Array.isArray(info) && info.length > 0 && info[0].result) {
-          result = info[0].result
-        } else if (typeof info === 'object' && info.result) {
-          result = info.result
-        } else if (Array.isArray(info)) {
-          result = info
-        }
-
-        result.forEach((item: any) => {
-          if (item.key && item.title) {
-            dramas.push({
-              id: item.key || '',
-              title: item.title || '',
-              description: item.contxt || 'No description available',
-              imageUrl: item.image || '',
-              totalEpisodes: item.isSerial ? parseInt(item.lastName) || 0 : 0,
-            })
-          }
-        })
-      }
-    } catch (error) {
-      this.logger.error('Error parsing API response', error.stack, 'IyfService')
-    }
-
-    return dramas
-  }
 
   private parseApiDramaDetail(apiResponse: any): DramaDetail {
     const data = apiResponse
@@ -279,7 +245,7 @@ export class IyfService {
     }
   }
 
-  private getMockDramas(): Drama[] {
+  private getMockDramas(): Video[] {
     return [
       {
         id: 'drama-1',
@@ -312,7 +278,7 @@ export class IyfService {
     ]
   }
 
-  private getMockMovies(): Drama[] {
+  private getMockMovies(): Video[] {
     return [
       {
         id: 'movie-1',
