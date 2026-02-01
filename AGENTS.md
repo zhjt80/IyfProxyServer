@@ -84,11 +84,32 @@ List all dramas from iyf.tv.
       "title": "string",
       "description": "string",
       "imageUrl": "string",
-      "totalEpisodes": number
+      "totalEpisodes": number,
+      "playCount": number,
+      "isHot": boolean,
+      "lang": "string",
+      "regional": "string",
+      "actor": "string",
+      "cidMapper": "string",
+      "mediaType": "string"
     }
   ]
 }
 ```
+
+**Field Descriptions:**
+- `id`: Unique identifier (mediaKey from iyf.tv)
+- `title`: Drama/movie title
+- `description`: Brief description
+- `imageUrl`: Cover image URL
+- `totalEpisodes`: Number of episodes (0 for movies)
+- `playCount`: Number of views (integer)
+- `isHot`: Whether the content is trending/hot (boolean)
+- `lang`: Language (e.g., "国语", "韩语")
+- `regional`: Region (e.g., "大陆", "韩国")
+- `actor`: Comma-separated actor names
+- `cidMapper`: Category (e.g., "剧情", "喜剧")
+- `mediaType`: Content type ("电视剧" or "电影")
 
 **Controller Example:**
 ```typescript
@@ -211,11 +232,32 @@ List all movies from iyf.tv.
       "title": "string",
       "description": "string",
       "imageUrl": "string",
-      "totalEpisodes": 0
+      "totalEpisodes": 0,
+      "playCount": number,
+      "isHot": boolean,
+      "lang": "string",
+      "regional": "string",
+      "actor": "string",
+      "cidMapper": "string",
+      "mediaType": "string"
     }
   ]
 }
 ```
+
+**Field Descriptions:** (Same as /api/dramas endpoint)
+- `id`: Unique identifier (mediaKey from iyf.tv)
+- `title`: Drama/movie title
+- `description`: Brief description
+- `imageUrl`: Cover image URL
+- `totalEpisodes`: Number of episodes (always 0 for movies)
+- `playCount`: Number of views (integer)
+- `isHot`: Whether the content is trending/hot (boolean)
+- `lang`: Language (e.g., "国语", "韩语")
+- `regional`: Region (e.g., "大陆", "韩国")
+- `actor`: Comma-separated actor names
+- `cidMapper`: Category (e.g., "剧情", "喜剧")
+- `mediaType`: Content type ("电视剧" or "电影")
 
 **Controller Example:**
 ```typescript

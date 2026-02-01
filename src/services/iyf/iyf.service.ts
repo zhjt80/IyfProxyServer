@@ -178,9 +178,16 @@ export class IyfService {
             movies.push({
               id: item.mediaKey || '',
               title: item.title || '',
-              description: item.description  || 'No description available',
+              description: item.description || 'No description available',
               imageUrl: item.coverImgUrl || '',
               totalEpisodes: item.isSerial ? parseInt(item.lastName) || 0 : 0,
+              playCount: parseInt(item.playCount) || 0,
+              isHot: item.isHot || false,
+              lang: item.lang || '',
+              regional: item.regional || '',
+              actor: item.actor || '',
+              cidMapper: item.cidMapper || '',
+              mediaType: item.mediaType || '',
             })
           }
         })

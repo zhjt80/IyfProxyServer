@@ -4,6 +4,13 @@ export interface Drama {
   description: string
   imageUrl: string
   totalEpisodes: number
+  playCount?: number
+  isHot?: boolean
+  lang?: string
+  regional?: string
+  actor?: string
+  cidMapper?: string
+  mediaType?: string
 }
 
 export interface Episode {
