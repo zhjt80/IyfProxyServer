@@ -30,7 +30,9 @@ iyfserver/
 │   │   ├── dramas/
 │   │   │   ├── dramas.controller.ts
 │   │   │   ├── dramas.service.ts
-│   │   │   └── dramas.module.ts
+│   │   │   ├── dramas.module.ts
+│   │   │   └── dto/
+│   │   │       └── get-dramas.dto.ts
 │   │   ├── detail/
 │   │   │   ├── detail.controller.ts
 │   │   │   ├── detail.service.ts
@@ -42,7 +44,9 @@ iyfserver/
 │   │   └── movies/
 │   │       ├── movies.controller.ts
 │   │       ├── movies.service.ts
-│   │       └── movies.module.ts
+│   │       ├── movies.module.ts
+│   │       └── dto/
+│   │           └── get-movies.dto.ts
 │   ├── common/
 │   │   ├── filters/
 │   │   │   └── http-exception.filter.ts
@@ -71,9 +75,16 @@ iyfserver/
 
 ### GET /api/dramas
 
-List all dramas from iyf.tv.
+List all dramas from iyf.tv with optional filters.
 
 **File:** `src/modules/dramas/dramas.controller.ts`
+
+**Query Parameters:**
+- `playCountRange` (optional) - Filter by classification: 0=最新上传, 1=最近更新, 2=人气最高, 3=评分最高 (default: 0)
+- `regional` (optional) - Filter by region classifyId: 0=全部地区, 1=大陆, 2=香港, 3=台湾, 4=日本, 5=韩国, 6=欧美, 7=英国, 8=泰国, 9=其它 (default: 0)
+- `language` (optional) - Filter by language classifyId: 0=全部语言, 1=国语, 2=粤语, 3=英语, 4=韩语, 5=日语, 6=西班牙语, 7=法语, 8=德语, 9=意大利语, 10=泰国语, 11=其它 (default: 0)
+- `category` (optional) - Filter by category classifyId: 0=全部类型, 129=偶像, 127=言情, 146=爱情, 126=古装, 141=历史, 142=玄幻, 136=谍战, 132=都市, 143=历险, 144=科幻, 135=军旅, 133=喜剧, 128=武侠, 145=江湖, 131=青春, 138=罪案, 130=家庭, 134=战争, 137=悬疑, 139=穿越, 140=宫廷, 147=神话, 148=商战, 149=警匪, 150=动作, 151=惊悚, 152=剧情, 153=同性, 154=奇幻, 155=短剧 (default: 0)
+- `year` (optional) - Filter by year classifyId: 0=全部年份, 1=今年, 2=去年, 3=更早, 4=90年代, 5=80年代, 6=怀旧 (default: 0)
 
 **Response:**
 ```json
@@ -118,8 +129,8 @@ export class DramasController {
   constructor(private readonly dramasService: DramasService) {}
 
   @Get()
-  async getDramas() {
-    return this.dramasService.findAll();
+  async getDramas(@Query() query: GetDramasDto) {
+    return this.dramasService.findAll(query);
   }
 }
 ```
@@ -219,9 +230,16 @@ export class GetPlaydataController {
 
 ### GET /api/movies
 
-List all movies from iyf.tv.
+List all movies from iyf.tv with optional filters.
 
 **File:** `src/modules/movies/movies.controller.ts`
+
+**Query Parameters:**
+- `playCountRange` (optional) - Filter by classification: 0=最新上传, 1=最近更新, 2=人气最高, 3=评分最高 (default: 0)
+- `regional` (optional) - Filter by region classifyId: 0=全部地区, 1=大陆, 2=香港, 3=台湾, 4=日本, 5=韩国, 6=欧美, 7=英国, 8=泰国, 9=其它 (default: 0)
+- `language` (optional) - Filter by language classifyId: 0=全部语言, 1=国语, 2=粤语, 3=英语, 4=韩语, 5=日语, 6=西班牙语, 7=法语, 8=德语, 9=意大利语, 10=泰国语, 11=其它 (default: 0)
+- `category` (optional) - Filter by category classifyId: 0=全部类型, 129=偶像, 127=言情, 146=爱情, 126=古装, 141=历史, 142=玄幻, 136=谍战, 132=都市, 143=历险, 144=科幻, 135=军旅, 133=喜剧, 128=武侠, 145=江湖, 131=青春, 138=罪案, 130=家庭, 134=战争, 137=悬疑, 139=穿越, 140=宫廷, 147=神话, 148=商战, 149=警匪, 150=动作, 151=惊悚, 152=剧情, 153=同性, 154=奇幻, 155=短剧 (default: 0)
+- `year` (optional) - Filter by year classifyId: 0=全部年份, 1=今年, 2=去年, 3=更早, 4=90年代, 5=80年代, 6=怀旧 (default: 0)
 
 **Response:**
 ```json
@@ -266,8 +284,8 @@ export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
   @Get()
-  async getMovies() {
-    return this.moviesService.findAll();
+  async getMovies(@Query() query: GetMoviesDto) {
+    return this.moviesService.findAll(query);
   }
 }
 ```
@@ -381,12 +399,49 @@ The iyf.tv website likely returns HTML or JSON data that needs to be parsed. Com
 Create DTOs for request validation:
 
 ```typescript
-// src/modules/detail/dto/get-detail.dto.ts
-import { IsString } from 'class-validator';
+// src/modules/dramas/dto/get-dramas.dto.ts
+import { IsOptional, IsIn, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class GetDetailDto {
-  @IsString()
-  id: string;
+export class GetDramasDto {
+  @ApiPropertyOptional({ enum: [0, 1, 2, 3], description: 'Filter by classification: 0=最新上传, 1=最近更新, 2=人气最高, 3=评分最高', default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([0, 1, 2, 3])
+  playCountRange?: 0 | 1 | 2 | 3;
+
+  @ApiPropertyOptional({ enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], description: 'Filter by region classifyId: 0=全部地区, 1=大陆, 2=香港, 3=台湾, 4=日本, 5=韩国, 6=欧美, 7=英国, 8=泰国, 9=其它', default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  @IsNumber()
+  regional?: number;
+
+  @ApiPropertyOptional({ enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], description: 'Filter by language classifyId: 0=全部语言, 1=国语, 2=粤语, 3=英语, 4=韩语, 5=日语, 6=西班牙语, 7=法语, 8=德语, 9=意大利语, 10=泰国语, 11=其它', default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  @IsNumber()
+  language?: number;
+
+  @ApiPropertyOptional({ enum: [0, 1, 2, 3, 4, 5, 6], description: 'Filter by year classifyId: 0=全部年份, 1=今年, 2=去年, 3=更早, 4=90年代, 5=80年代, 6=怀旧', default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([0, 1, 2, 3, 4, 5, 6])
+  @IsNumber()
+  year?: number;
+
+  @ApiPropertyOptional({
+    enum: [0, 129, 127, 126, 141, 142, 136, 132, 143, 144, 135, 133, 128, 145, 131, 138, 130, 134, 137, 139, 140, 147, 148, 149, 150, 151, 152, 153, 154, 155],
+    description: 'Filter by category classifyId: 0=全部类型, 129=偶像, 127=言情, 146=爱情, 126=古装, 141=历史, 142=玄幻, 136=谍战, 132=都市, 143=历险, 144=科幻, 135=军旅, 133=喜剧, 128=武侠, 145=江湖, 131=青春, 138=罪案, 130=家庭, 134=战争, 137=悬疑, 139=穿越, 140=宫廷, 147=神话, 148=商战, 149=警匪, 150=动作, 151=惊悚, 152=剧情, 153=同性, 154=奇幻, 155=短剧',
+    default: 0
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([0, 129, 127, 126, 141, 142, 136, 132, 143, 144, 135, 133, 128, 145, 131, 138, 130, 134, 137, 139, 140, 147, 148, 149, 150, 151, 152, 153, 154, 155])
+  @IsNumber()
+  category?: number;
 }
 ```
 
@@ -396,18 +451,28 @@ Example service implementation:
 
 ```typescript
 // src/modules/dramas/dramas.service.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { IyfService } from '../../services/iyf.service';
+import { Injectable } from '@nestjs/common';
+import { IyfService } from '../../services/iyf/iyf.service';
+import { Video } from '../../types';
+import { GetDramasDto } from './dto/get-dramas.dto';
 
 @Injectable()
 export class DramasService {
-  private readonly logger = new Logger(DramasService.name);
-
   constructor(private readonly iyfService: IyfService) {}
 
-  async findAll() {
-    this.logger.log('Fetching all dramas');
-    return this.iyfService.fetchDramas();
+  async findAll(query: GetDramasDto): Promise<{ dramas: Video[] }> {
+    const filter: string = this.applyFilters(query);
+    const allVideos = await this.iyfService.fetchDramas(filter);
+    return { dramas: allVideos };
+  }
+
+  private applyFilters(query: GetDramasDto): string {
+    const playCountRange = query.playCountRange ?? 0;
+    const category = query.category ?? 0;
+    const regional = query.regional ?? 0;
+    const language = query.language ?? 0;
+    const year = query.year ?? 0;
+    return `${playCountRange},${category},${regional},${language},${year},0`;
   }
 }
 ```
@@ -675,9 +740,17 @@ http://localhost:3000/api
 ```
 
 The mobile app uses these endpoints:
-- `/api/dramas` - Browse drama listings
+- `/api/dramas` - Browse drama listings with optional filters (playCountRange, regional, language, category, year)
+- `/api/movies` - Browse movie listings with optional filters (playCountRange, regional, language, category, year)
 - `/api/detail/:id` - View drama details and episodes
 - `/api/getplaydata` - Get video media URL for playback
+
+**Query Parameters for /api/dramas and /api/movies:**
+- `playCountRange`: 0=最新上传, 1=最近更新, 2=人气最高, 3=评分最高 (default: 0)
+- `regional`: 0=全部地区, 1=大陆, 2=香港, 3=台湾, 4=日本, 5=韩国, 6=欧美, 7=英国, 8=泰国, 9=其它 (default: 0)
+- `language`: 0=全部语言, 1=国语, 2=粤语, 3=英语, 4=韩语, 5=日语, 6=西班牙语, 7=法语, 8=德语, 9=意大利语, 10=泰国语, 11=其它 (default: 0)
+- `category`: 0=全部类型, 129=偶像, 127=言情, 126=古装, 141=历史, 142=玄幻, 136=谍战, 132=都市, 143=历险, 144=科幻, 135=军旅, 133=喜剧, 128=武侠, 145=江湖, 131=青春, 138=罪案, 130=家庭, 134=战争, 137=悬疑, 139=穿越, 140=宫廷, 147=神话, 148=商战, 149=警匪, 150=动作, 151=惊悚, 152=剧情, 153=同性, 154=奇幻, 155=短剧 (default: 0)
+- `year`: 0=全部年份, 1=今年, 2=去年, 3=更早, 4=90年代, 5=80年代, 6=怀旧 (default: 0)
 
 For development with different origins, ensure CORS is properly configured in `src/main.ts`.
 

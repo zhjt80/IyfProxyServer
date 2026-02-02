@@ -2,7 +2,7 @@ import { IsOptional, IsIn, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class GetDramasDto {
+export class GetMoviesDto {
   @ApiPropertyOptional({ enum: [0, 1, 2, 3], description: 'Filter by classification: 0=最新上传, 1=最近更新, 2=人气最高, 3=评分最高', default: 0 })
   @IsOptional()
   @Type(() => Number)

@@ -25,17 +25,14 @@ export class IyfService {
     return response.data
   }
 
-  async fetchMovies(): Promise<Video[]> {
+  async fetchMovies(filter?:string): Promise<Video[]> {
     this.logger.log('Fetching movies from iyf.tv API')
     try {
       const pub = generatePub()
       const generatedDeviceId = this.generateDeviceId()
 
       const apiUrl =
-        'https://api.iyf.tv/api/list/getconditionfilterdata?titleid=movie&ids=0,0,0,0&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId=' +
-        generatedDeviceId +
-        '&i18n=0&pub=' +
-        pub
+        `https://api.iyf.tv/api/list/getconditionfilterdata?titleid=movie&ids=${filter}&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId=${generatedDeviceId}&i18n=0&pub=${pub}`
 
       const response = await this.makeApiRequest(apiUrl)
 
@@ -54,15 +51,13 @@ export class IyfService {
     }
   }
 
-  async fetchDramas(): Promise<Video[]> {
+  async fetchDramas(filter?:string): Promise<Video[]> {
     this.logger.log('Fetching dramas from iyf.tv API')
     try {
+
       const pub = generatePub()
       const generatedDeviceId = this.generateDeviceId()
-      const apiUrl ='https://api.iyf.tv/api/list/getconditionfilterdata?titleid=drama&ids=0,0,0,0,0,0&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId='+
-        generatedDeviceId+
-        '&i18n=0&pub=' +
-        pub
+      const apiUrl =`https://api.iyf.tv/api/list/getconditionfilterdata?titleid=drama&ids=${filter}&page=1&size=21&System=h5&AppVersion=1.0&SystemVersion=h5&version=H3&DeviceId=${generatedDeviceId}&i18n=0&pub=${pub}`
       const response = await this.makeApiRequest(apiUrl)
 
       const dramas = this.parseApiVideoList(response)
