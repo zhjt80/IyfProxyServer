@@ -11,6 +11,7 @@ export interface Video {
   actor?: string
   cidMapper?: string
   mediaType?: string
+  score?: number
 }
 
 export interface Episode {

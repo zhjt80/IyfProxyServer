@@ -188,6 +188,7 @@ export class IyfService {
               actor: item.actor || '',
               cidMapper: item.cidMapper || '',
               mediaType: item.mediaType || '',
+              score: item.score || 0,
             })
           }
         })
