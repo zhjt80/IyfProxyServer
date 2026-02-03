@@ -7,10 +7,10 @@ import { GetDramasDto } from './dto/get-dramas.dto';
 export class DramasService {
   constructor(private readonly iyfService: IyfService) {}
 
-  async findAll(query: GetDramasDto): Promise<{ dramas: Video[] }> {
+  async findAll(query: GetDramasDto): Promise<Video[]> {
     const filter:string = this.applyFilters(query);
     const allVideos = await this.iyfService.fetchDramas(filter);
-    return { dramas: allVideos };
+    return allVideos;
   }
 
   private applyFilters(query: GetDramasDto): string {

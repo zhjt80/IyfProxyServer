@@ -16,8 +16,6 @@ export class MoviesController {
   @ApiQuery({ name: 'regional', required: false, type: String, description: 'Filter by region (e.g., 大陆, 韩国)' })
   @ApiQuery({ name: 'language', required: false, type: String, description: 'Filter by language (e.g., 国语, 韩语)' })
   @ApiQuery({ name: 'category', required: false, type: String, description: 'Filter by category (e.g., 剧情, 喜剧)' })
-  @ApiQuery({ name: 'mediaType', required: false, enum: ['all', 'tv', 'movie'], description: 'Filter by media type' })
-  @ApiQuery({ name: 'sortBy', required: false, enum: ['all', 'newest', 'popular', 'score'], description: 'Sort results' })
   async getMovies(@Query() query: GetMoviesDto) {
     return this.moviesService.findAll(query);
   }
